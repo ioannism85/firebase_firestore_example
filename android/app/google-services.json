@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1017513156279",
+    "project_id": "ygianotifications",
+    "storage_bucket": "ygianotifications.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1017513156279:android:c644a4c01ccee182377732",
+        "android_client_info": {
+          "package_name": "com.example.firebase_example"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANQuxbCAgwMW6NdxrrESuFPVxet7dBOLc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
