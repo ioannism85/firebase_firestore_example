@@ -1,16 +1,17 @@
 
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_example/models/notification_badge.dart';
+import 'package:firebase_example/services/firestore_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 
-Future<void> main() async {
-  runApp(const MyApp());
-  await Firebase.initializeApp(
-  options: DefaultFirebaseOptions.currentPlatform,
-);
-
+Future<void> main() async { 
+  WidgetsFlutterBinding.ensureInitialized();
+  Firebase.initializeApp(
+  options: DefaultFirebaseOptions.currentPlatform
+  ).then((value) => runApp(const MyApp()));
 }
 
 class NotificationList extends StatelessWidget {
@@ -52,6 +53,7 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
@@ -73,10 +75,14 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const FirebaseExample(title: 'Flutter firebase reloaded'),
+      home:  ChangeNotifierProvider(
+        create: (context) =>  FirestoreService(),
+        child:   const FirebaseExample(title: 'My example')
+      )  
     );
   }
 }
+
 
 class FirebaseExample extends StatefulWidget {
   const FirebaseExample({super.key, required this.title});
@@ -98,7 +104,7 @@ class FirebaseExample extends StatefulWidget {
 
 class _FirebaseExampleState extends State<FirebaseExample> {
 
- 
+
   @override
   void initState()  {
     super.initState();   
@@ -108,6 +114,8 @@ class _FirebaseExampleState extends State<FirebaseExample> {
  
   @override
   Widget build(BuildContext context) {
+
+    var firebaseService = Provider.of<FirestoreService>(context);
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -124,45 +132,220 @@ class _FirebaseExampleState extends State<FirebaseExample> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body:  Center(
-        child:  Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
+      body:  
+         Column(
           children:<Widget>[
              SizedBox(
-              height: 300,
-               child:  StreamBuilder<QuerySnapshot>(
-                            stream: FirebaseFirestore.instance.collection("notifications").snapshots(),
-                            builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                           QuerySnapshot? querySnapshot = snapshot.data;
-                            return ListView.builder(
-
-                              itemBuilder: (context, index) {
-                                var data = querySnapshot?.docs[index].data() as Map<String,dynamic>;
-                                final pendingNotifications = data['data']['pending'].toString();
-                                 return  Center( 
-                                  child:
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [ const Text('Pending Notifications: '), 
-                                                    Badge(
-                                                        largeSize: 50,
-                                                        smallSize: 30,
-                                                       label: SizedBox(width:30, child: Text(  pendingNotifications, textAlign: TextAlign.center, )))  ,
-                                                      ],
-                                        ) 
-                                       
-                                 );
-                              },
-                              itemCount: querySnapshot?.docs.length ,
-                              );
-                            
-                            }
-               )
+              height: MediaQuery.of(context).size.height-115,
+               child: StreamProvider<List<NotificationBadge>>(
+                create:(context) => firebaseService.getNotificationBadgesStream(),
+                initialData: const[],
+                child:  const  NavigationExample()
+                )
              )
           ]
         ),
-      ), 
+     
+    );
+  }
+}
+
+
+class NotificationBadgeList extends StatelessWidget {
+  const NotificationBadgeList({super.key});
+  @override
+  Widget build(BuildContext context) {
+    var badges = Provider.of<List<NotificationBadge>>(context);
+
+        return  ListView.builder(
+                              itemBuilder: (context, index) {
+                                var data = badges[index];
+                                 return   Center(
+                                  child:  NotificationBadgeItem( item: data)
+                                 );
+                              },
+                              itemCount: badges.length
+                              );
+        
+  }
+}
+
+
+class NotificationBadgeItem extends StatelessWidget {
+   final NotificationBadge item;
+
+   const NotificationBadgeItem({super.key, required this.item});
+
+ @override
+  Widget build(BuildContext context) {
+
+    return   Column( mainAxisAlignment: MainAxisAlignment.center, verticalDirection: VerticalDirection.up, crossAxisAlignment: CrossAxisAlignment.center, children: [
+      
+      Container( margin: const EdgeInsets.only(top: 20), child:
+      Row( mainAxisAlignment: MainAxisAlignment.center, children: [
+       const Text("CITAS:    ",  textAlign: TextAlign.left,  style: TextStyle( fontSize: 18, fontWeight: FontWeight.bold)),
+        Badge(
+               largeSize: 30,
+               smallSize: 30,
+              label: SizedBox(width:30, child: Text(item.citas.toString()  , textAlign: TextAlign.center ))
+            ) 
+        ])
+      ),
+      Container(  margin: const EdgeInsets.only(top: 20),
+        child:
+              Row(mainAxisAlignment: MainAxisAlignment.center,  children: [
+                      const Text("CHAT:   ", textAlign: TextAlign.left, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+       Badge( 
+               largeSize: 30,
+               smallSize: 30,
+              label: SizedBox(width:30, child: Text(item.chat.toString()  , textAlign: TextAlign.center ))
+            )
+           
+      ],)
+      ),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+      const Text("GENERAL:   ", textAlign: TextAlign.left ,  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Badge(  
+               largeSize: 30,
+               smallSize: 30,
+              label: SizedBox(width:30, child: Text(item.general.toString()  , textAlign: TextAlign.center ))
+            ) 
+
+        ])
+      
+    
+    ]);
+
+
+  }
+  
+}
+
+
+class NavigationExample extends StatefulWidget {
+  const NavigationExample({super.key});
+
+  @override
+  State<NavigationExample> createState() => _NavigationExampleState();
+}
+
+class _NavigationExampleState extends State<NavigationExample> {
+  int currentPageIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    var notifications =Provider.of<List<NotificationBadge>>(context);
+    var chatBadge =notifications[0].chat.toString();
+    var citasBadge = notifications[0].citas.toString();
+    return Scaffold(
+      bottomNavigationBar: NavigationBar(
+        onDestinationSelected: (int index) {
+          setState(() {
+            currentPageIndex = index;
+          });
+        },
+        indicatorColor: Colors.blue,
+        selectedIndex: currentPageIndex,
+        destinations:  <Widget>[
+         const  NavigationDestination(
+            selectedIcon: Icon(Icons.home),
+            icon: Icon(Icons.home_outlined),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Badge( label: Text(citasBadge), child: const Icon(Icons.notifications_sharp)),
+            label: 'Notifications',
+          ),
+          NavigationDestination(
+            icon:  Badge(
+              label: Text(chatBadge),
+              child: const Icon(Icons.messenger_sharp),
+            ),
+            label: 'Chat',
+          ),
+        ],
+      ),
+      body: <Widget>[
+        /// Home page
+        Card(
+          shadowColor: Colors.transparent,
+          margin: const EdgeInsets.all(8.0),
+          child: SizedBox.expand(
+            child: Center(
+              child: Text(
+                'Home page',
+                style: theme.textTheme.titleLarge,
+              ),
+            ),
+          ),
+        ),
+
+        /// Notifications page
+        const Padding(
+          padding: EdgeInsets.all(8.0),
+          child: Column(
+            children: <Widget>[
+              Card(
+                child: ListTile(
+                  leading: Icon(Icons.notifications_sharp),
+                  title: Text('Notification 1'),
+                  subtitle: Text('This is a notification'),
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  leading: Icon(Icons.notifications_sharp),
+                  title: Text('Notification 2'),
+                  subtitle: Text('This is a notification'),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        /// Messages page
+        ListView.builder(
+          reverse: true,
+          itemCount: 2,
+          itemBuilder: (BuildContext context, int index) {
+            if (index == 0) {
+              return Align(
+                alignment: Alignment.centerRight,
+                child: Container(
+                  margin: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: Text(
+                    'Hello',
+                    style: theme.textTheme.bodyLarge!
+                        .copyWith(color: theme.colorScheme.onPrimary),
+                  ),
+                ),
+              );
+            }
+            return Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                margin: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Text(
+                  'Hi!',
+                  style: theme.textTheme.bodyLarge!
+                      .copyWith(color: theme.colorScheme.onPrimary),
+                ),
+              ),
+            );
+          },
+        ),
+      ][currentPageIndex],
     );
   }
 }
